@@ -1,0 +1,13 @@
+[package]
+name = "shoddycast-roll-sim"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+num-format = "0.4.4"
+rand = { version = "0.9.0-alpha.2", features = ["nightly", "simd_support"] }
+rayon = "1"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
