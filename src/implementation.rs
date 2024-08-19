@@ -28,7 +28,7 @@ pub fn rand_simd(num_iter: u64) -> u32 {
         let b: __m256i = rng.random();
         let r = _mm256_and_si256(a, b);
 
-        _mm256_extract_epi64::<0>(r).count_ones()
+        (_mm256_extract_epi64::<0>(r) & 0x0000_007f_ffff_ffff).count_ones()
             + _mm256_extract_epi64::<1>(r).count_ones()
             + _mm256_extract_epi64::<2>(r).count_ones()
             + _mm256_extract_epi64::<3>(r).count_ones()
@@ -52,7 +52,10 @@ pub fn wyrand_simd(num_iter: u64) -> u32 {
         let a = std::simd::u64x4::from_array([rng.rand(), rng.rand(), rng.rand(), rng.rand()]);
         let b = std::simd::u64x4::from_array([rng.rand(), rng.rand(), rng.rand(), rng.rand()]);
         let r = a & b;
-        r[0].count_ones() + r[1].count_ones() + r[2].count_ones() + r[3].count_ones()
+        (r[0] & 0x0000_007f_ffff_ffff).count_ones()
+            + r[1].count_ones()
+            + r[2].count_ones()
+            + r[3].count_ones()
     })
 }
 
@@ -80,7 +83,10 @@ pub fn wyrand_simd_multiple_rng(num_iter: u64) -> u32 {
             let r3 = a3 & b3;
 
             let popcnt = |r: T| {
-                r[0].count_ones() + r[1].count_ones() + r[2].count_ones() + r[3].count_ones()
+                (r[0] & 0x0000_007f_ffff_ffff).count_ones()
+                    + r[1].count_ones()
+                    + r[2].count_ones()
+                    + r[3].count_ones()
             };
             let r0 = popcnt(r0);
             let r1 = popcnt(r1);

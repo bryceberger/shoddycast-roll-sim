@@ -10,10 +10,10 @@ use num_format::{Locale, ToFormattedString};
 
 mod implementation;
 
-/// These implementations depart from the original: instead of running 231 rolls
-/// per iteration, they run 256.
-///
-/// This is done solely to make implementation easier and faster.
+/// Somem implementations depart from the original: instead of running 231 rolls
+/// per iteration, they run 256. This is done solely to make implementation
+/// easier and faster. The affected implementations have `(256 rolls)` after
+/// their name.
 #[derive(Parser)]
 struct Args {
     /// Number of iterations to run.
@@ -40,11 +40,11 @@ impl Alg {
         match self {
             #[cfg(feature = "x86")]
             Alg::RandSimd => "rand, simd",
-            Alg::Wyrand => "wyrand",
+            Alg::Wyrand => "wyrand (256 rolls)",
             Alg::WyrandSimd => "wyrand, simd",
             Alg::WyrandSimdMultipleRng => "wyrand, simd, multiple rng",
             #[cfg(feature = "avx512")]
-            Alg::Wyrand512 => "wyrand, avx512",
+            Alg::Wyrand512 => "wyrand, avx512 (256 rolls)",
         }
     }
 
