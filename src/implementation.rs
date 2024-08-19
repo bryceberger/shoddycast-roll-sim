@@ -1,4 +1,5 @@
 use rand::prelude::*;
+use rand_xoshiro::rand_core::{RngCore, SeedableRng};
 use rayon::prelude::*;
 use wyrand::WyRand;
 
@@ -14,6 +15,13 @@ where
         .into_par_iter()
         .map_init(init, |val, _| op(val))
         .reduce(Default::default, |x, y| x.max(y))
+}
+
+fn popcnt_arr<T: std::ops::Index<usize, Output = u64>>(t: T) -> u32 {
+    (t[0] & 0x0000_007f_ffff_ffff).count_ones()
+        + t[1].count_ones()
+        + t[2].count_ones()
+        + t[3].count_ones()
 }
 
 fn wyrand_init() -> WyRand {
@@ -52,10 +60,7 @@ pub fn wyrand_simd(num_iter: u64) -> u32 {
         let a = std::simd::u64x4::from_array([rng.rand(), rng.rand(), rng.rand(), rng.rand()]);
         let b = std::simd::u64x4::from_array([rng.rand(), rng.rand(), rng.rand(), rng.rand()]);
         let r = a & b;
-        (r[0] & 0x0000_007f_ffff_ffff).count_ones()
-            + r[1].count_ones()
-            + r[2].count_ones()
-            + r[3].count_ones()
+        popcnt_arr(r)
     })
 }
 
@@ -82,16 +87,10 @@ pub fn wyrand_simd_multiple_rng(num_iter: u64) -> u32 {
             let r2 = a2 & b2;
             let r3 = a3 & b3;
 
-            let popcnt = |r: T| {
-                (r[0] & 0x0000_007f_ffff_ffff).count_ones()
-                    + r[1].count_ones()
-                    + r[2].count_ones()
-                    + r[3].count_ones()
-            };
-            let r0 = popcnt(r0);
-            let r1 = popcnt(r1);
-            let r2 = popcnt(r2);
-            let r3 = popcnt(r3);
+            let r0 = popcnt_arr(r0);
+            let r1 = popcnt_arr(r1);
+            let r2 = popcnt_arr(r2);
+            let r3 = popcnt_arr(r3);
             r0.max(r1).max(r2).max(r3)
         },
     )
@@ -120,6 +119,20 @@ pub fn wyrand_avx512(num_iter: u64) -> u32 {
             let high = _mm512_extracti64x4_epi64::<1>(rand);
             let r = _mm256_popcnt_epi64(_mm256_and_si256(low, high));
             core::intrinsics::simd::simd_reduce_add_unordered::<_, i64>(r) as _
+        },
+    )
+}
+
+pub fn xoshiro(num_iter: u64) -> u32 {
+    base(
+        num_iter,
+        || rand_xoshiro::Xoshiro256StarStar::seed_from_u64(random()),
+        |rng| {
+            type T = std::simd::u64x4;
+            let mut r = || rng.next_u64();
+            let a: T = [r(), r(), r(), r()].into();
+            let b: T = [r(), r(), r(), r()].into();
+            popcnt_arr(a & b)
         },
     )
 }

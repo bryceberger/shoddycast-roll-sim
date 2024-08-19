@@ -33,6 +33,8 @@ enum Alg {
     WyrandSimdMultipleRng,
     #[cfg(feature = "avx512")]
     Wyrand512,
+
+    Xoshiro,
 }
 
 impl Alg {
@@ -45,6 +47,7 @@ impl Alg {
             Alg::WyrandSimdMultipleRng => "wyrand, simd, multiple rng",
             #[cfg(feature = "avx512")]
             Alg::Wyrand512 => "wyrand, avx512 (256 rolls)",
+            Alg::Xoshiro => "xoshiro",
         }
     }
 
@@ -58,6 +61,7 @@ impl Alg {
             Alg::WyrandSimdMultipleRng => wyrand_simd_multiple_rng(num_iter),
             #[cfg(feature = "avx512")]
             Alg::Wyrand512 => wyrand_avx512(num_iter),
+            Alg::Xoshiro => xoshiro(num_iter),
         }
     }
 }
@@ -81,6 +85,7 @@ fn main() {
             Alg::WyrandSimdMultipleRng,
             #[cfg(feature = "avx512")]
             Alg::Wyrand512,
+            Alg::Xoshiro,
         ]
     };
 
