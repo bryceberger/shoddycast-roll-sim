@@ -4,10 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-num-format = "0.4.4"
+clap = { version = "4.5.16", features = ["derive"] }
+num-format = "0.4"
 rand = { version = "0.9.0-alpha.2", features = ["nightly", "simd_support"] }
 rayon = "1"
+wyrand = { version = "0.2", default-features = false }
 
 [profile.release]
 lto = "fat"
 codegen-units = 1
+panic = "abort"
