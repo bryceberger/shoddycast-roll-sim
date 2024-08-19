@@ -14,3 +14,8 @@ wyrand = { version = "0.2", default-features = false }
 lto = "fat"
 codegen-units = 1
 panic = "abort"
+
+[features]
+default = ["x86"]
+x86 = []
+avx512 = ["x86"]

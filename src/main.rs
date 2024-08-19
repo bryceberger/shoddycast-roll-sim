@@ -1,4 +1,9 @@
 #![feature(portable_simd)]
+#![cfg_attr(
+    feature = "avx512",
+    allow(internal_features),
+    feature(stdarch_x86_avx512, core_intrinsics)
+)]
 
 use clap::Parser;
 use num_format::{Locale, ToFormattedString};
@@ -12,33 +17,47 @@ mod implementation;
 #[derive(Parser)]
 struct Args {
     /// Number of iterations to run.
+    #[arg(short, long, default_value_t = 1_000_000_000)]
     num_iter: u64,
 
-    /// Which algorithms to run. If omitted, will run all.
+    /// Which algorithms to run. If omitted, will run all available.
     algs: Vec<Alg>,
 }
 
 #[derive(Clone, Copy, clap::ValueEnum)]
 enum Alg {
+    #[cfg(feature = "x86")]
     RandSimd,
-    WyRand,
-    WyRandSimd,
+    Wyrand,
+    WyrandSimd,
+    WyrandSimdMultipleRng,
+    #[cfg(feature = "avx512")]
+    Wyrand512,
 }
 
 impl Alg {
     fn name(self) -> &'static str {
         match self {
+            #[cfg(feature = "x86")]
             Alg::RandSimd => "rand, simd",
-            Alg::WyRand => "wyrand",
-            Alg::WyRandSimd => "wyrand, simd",
+            Alg::Wyrand => "wyrand",
+            Alg::WyrandSimd => "wyrand, simd",
+            Alg::WyrandSimdMultipleRng => "wyrand, simd, multiple rng",
+            #[cfg(feature = "avx512")]
+            Alg::Wyrand512 => "wyrand, avx512",
         }
     }
 
     fn run(self, num_iter: u64) -> u32 {
+        use implementation::*;
         match self {
-            Alg::RandSimd => implementation::rand_simd(num_iter),
-            Alg::WyRand => implementation::wyrand(num_iter),
-            Alg::WyRandSimd => implementation::wyrand_simd(num_iter),
+            #[cfg(feature = "x86")]
+            Alg::RandSimd => rand_simd(num_iter),
+            Alg::Wyrand => wyrand(num_iter),
+            Alg::WyrandSimd => wyrand_simd(num_iter),
+            Alg::WyrandSimdMultipleRng => wyrand_simd_multiple_rng(num_iter),
+            #[cfg(feature = "avx512")]
+            Alg::Wyrand512 => wyrand_avx512(num_iter),
         }
     }
 }
@@ -54,7 +73,15 @@ fn main() {
     let algs = if !args.algs.is_empty() {
         args.algs.as_slice()
     } else {
-        &[Alg::RandSimd, Alg::WyRand, Alg::WyRandSimd]
+        &[
+            #[cfg(feature = "x86")]
+            Alg::RandSimd,
+            Alg::Wyrand,
+            Alg::WyrandSimd,
+            Alg::WyrandSimdMultipleRng,
+            #[cfg(feature = "avx512")]
+            Alg::Wyrand512,
+        ]
     };
 
     let name_width = algs.iter().map(|a| a.name().len()).max().unwrap();
