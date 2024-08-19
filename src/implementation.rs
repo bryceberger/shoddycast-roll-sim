@@ -1,8 +1,8 @@
 use rand::prelude::*;
 use rand_xoshiro::rand_core::{RngCore, SeedableRng};
-use rayon::prelude::*;
 use wyrand::WyRand;
 
+#[cfg(feature = "multithreaded")]
 fn base<T, R>(
     num_iter: u64,
     init: impl Fn() -> T + Sync + Send,
@@ -11,10 +11,23 @@ fn base<T, R>(
 where
     R: Send + Default + std::cmp::Ord,
 {
+    use rayon::prelude::*;
     (0..num_iter)
         .into_par_iter()
         .map_init(init, |val, _| op(val))
         .reduce(Default::default, |x, y| x.max(y))
+}
+
+#[cfg(not(feature = "multithreaded"))]
+fn base<T, R>(num_iter: u64, init: impl Fn() -> T, op: impl Fn(&mut T) -> R) -> R
+where
+    R: Default + std::cmp::Ord,
+{
+    let mut val = init();
+    (0..num_iter)
+        .map(|_| op(&mut val))
+        .reduce(|x, y| x.max(y))
+        .unwrap()
 }
 
 fn popcnt_arr<T: std::ops::Index<usize, Output = u64>>(t: T) -> u32 {
